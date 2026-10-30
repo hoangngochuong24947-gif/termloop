@@ -1,0 +1,14 @@
+packages:
+  - '.'
+
+allowBuilds:
+  better-sqlite3: set this to true or false
+  esbuild: set this to true or false
+
+# 原生依赖必须允许构建，否则 better-sqlite3 装不上二进制
+onlyBuiltDependencies:
+  - better-sqlite3
+  - esbuild
+
+# 跑脚本前不自动 install（避免 CI/离线环境下莫名失败）
+verifyDepsBeforeRun: false

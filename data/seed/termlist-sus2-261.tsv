@@ -1,0 +1,261 @@
+potential energy surface (PES)	势能面；力是它的梯度
+machine-learning interatomic potential (MLIP)	机器学习原子间势
+first principles	第一性原理
+density functional theory (DFT)	密度泛函理论
+empirical potential	经验势
+descriptor	描述符（构型→向量）
+structural representation	结构表示
+equivariant	等变的（输入转输出跟着转）
+invariant	不变的（怎么转都不动）
+covariant	协变的（等变旧称）
+permutation invariance	置换不变性
+rotational invariance	旋转不变性
+message passing	消息传递
+graph neural network (GNN)	图神经网络
+many-body expansion	多体展开
+many-body descriptor	多体描述符
+moment tensor	矩张量
+moment tensor potential (MTP)	矩张量势
+radial function	径向函数
+radial basis	径向基
+spherical harmonics	球谐函数
+angular momentum order	角量子数（角动量阶 l）
+cutoff radius	截断半径
+local atomic environment (LAE)	局域环境
+coordination environment	配位环境
+site energy	位点能；局域原子能
+extrapolation	外推
+generalizability	泛化能力
+material property field (MPF)	材料物性场（论文自创名）
+structure-property relationship	构效关系
+effective interaction	有效相互作用
+directed two-body interaction	有向两体相互作用
+interaction space	相互作用空间
+tensor product	张量积；直积
+direct sum	直和
+property projection	物性投影
+irreducible representation	不可约表示
+coupling path	耦合路径
+magnetic quantum number	磁量子数 m
+body order	体阶（源码文档称体序）
+multiplicity space	多重度空间
+linear basis set	线性基组
+super-linear basis set	超线性基组
+local-field coupling	局域场耦合
+environment modulation	环境调制
+semi-analytical	半解析的
+physics-informed	物理知识嵌入的
+completeness	完备性
+asymptotic limit	渐近边界
+mean-field approximation	平均场近似
+reference energy	参考能；孤立原子能
+Hopfield dynamics	Hopfield 动力学
+parity	宇称
+Legendre polynomial	勒让德多项式
+generalized Legendre polynomial	广义勒让德多项式
+spherical tensor	球张量
+Wigner D-matrix	Wigner-D 矩阵
+N-polar spherical harmonics	N 极球谐函数
+Clebsch-Gordan coefficient	Clebsch-Gordan 系数
+Slater-Koster method	Slater-Koster 方法
+Mayer cluster expansion	Mayer 簇展开
+multipole expansion	多极展开
+Hohenberg-Kohn theorem	Hohenberg-Kohn 定理
+Kolmogorov-Arnold network (KAN)	Kolmogorov-Arnold 网络
+global universal scaling	全局通用标度
+universal equation of state (UEOS)	通用状态方程
+dimensionless distance	无量纲距离
+scaling parameter	标度参数
+parameter sharing	参数共享
+ultra-small parameterization	超小参数化
+super-linear	超线性的
+nonlinearity-embedded transformation	非线性嵌入变换
+out-of-domain difficulty	域外困难
+physical scalability	物理可扩展性
+Chebyshev polynomial	切比雪夫多项式
+Jacobi polynomial	雅可比多项式
+radial channel	径向通道 K
+basis size	基底条数
+two-layer environment gate	两层环境门控
+gate scalar	门控标量
+gate value	门值 g_b
+residual branch	残差分支
+superlinear mixer	超线性混合器
+tabulation	打表
+universal potential	通用势
+foundation model	基座模型
+fine-tuning	微调
+distillation	蒸馏
+ZBL correction	ZBL 短程修正
+loss function	损失函数
+energy-force-virial weights	能量/力/维里 权重
+training label	训练标签
+BFGS	BFGS（拟牛顿优化）
+convergence	收敛
+overfitting	过拟合
+regularization	正则化
+regularization weight	正则化权重 λ
+atomic energy regularization (AER)	原子能量正则化
+maximum a posteriori (MAP)	最大后验估计
+maximum likelihood estimation (MLE)	最大似然估计
+likelihood	似然
+prior	先验
+posterior	后验
+latent variable	隐变量
+chemical potential	化学势
+elemental reference state	单质参考态
+compensatory shift	补偿性偏移
+stoichiometry	化学计量比
+information entropy	信息熵
+anomalous energy fluctuation	异常能量涨落
+active learning	主动学习
+adaptive sampling	自适应采样
+dual adaptive sampling (DAS)	双重自适应采样
+candidate pool	候选池
+ensemble disagreement	集成分歧（模型分歧）
+uncertainty	不确定性
+ambiguity	模糊度（分歧的量化）
+coverage	覆盖度
+hard coverage threshold	硬覆盖阈值
+descriptor histogram	描述符直方图
+bin	分箱；箱
+Freedman-Diaconis rule	FD 分箱规则
+minimum cover	最小覆盖
+greedy cover	贪心覆盖
+multicover	多重覆盖
+state population	状态布居阈值
+reverse pruning	反向剪枝
+plateau convergence	平台期收敛
+principal component analysis (PCA)	主成分分析
+singular value decomposition (SVD)	奇异值分解
+seed configuration	种子构型
+lattice scaling	晶格缩放
+strain	应变
+rattle	随机抖动
+phonon displacement	声子位移
+enhanced sampling	增强采样
+metadynamics	元动力学
+collective variable (CV)	集体变量
+warm start	热启动
+resume	断点续跑
+checkpoint	检查点
+thermal conductivity	热导率 κ
+equilibrium molecular dynamics (EMD)	平衡分子动力学
+non-equilibrium molecular dynamics (NEMD)	非平衡分子动力学
+homogeneous NEMD (HNEMD)	均匀非平衡分子动力学
+Green-Kubo relation	Green-Kubo 关系式
+heat flux	热流
+phonon Boltzmann transport equation (BTE)	声子玻尔兹曼输运方程
+phonon	声子
+phonon dispersion	声子谱；声子色散
+phonon frequency	声子频率
+vibrational density of states (VDOS)	振动态密度
+three-phonon scattering	三声子散射
+four-phonon scattering	四声子散射
+anharmonicity	非谐性
+quasiparticle	准粒子
+relaxation time	弛豫时间
+mean free path	平均自由程
+group velocity	群速度
+thermal boundary conductance (TBC)	界面热导
+Kapitza resistance	Kapitza 热阻
+diffuse mismatch model (DMM)	扩散失配模型
+acoustic mismatch model (AMM)	声学失配模型
+superlattice	超晶格
+heterointerface	异质界面
+interfacial atomic mixing	界面原子混合
+intrinsic	本征的
+part-crystalline part-liquid	部分晶态-部分液态
+superionic conductor	超离子导体
+diffusion coefficient	扩散系数
+mean squared displacement (MSD)	均方位移
+activation energy	活化能
+Einstein relation	Einstein 关系
+Arrhenius relation	Arrhenius 关系
+formation energy	形成能
+structural phase transition	结构相变
+density deviation	密度偏差
+simulation completion rate	模拟完成率
+generalized gradient approximation (GGA)	广义梯度近似
+PBE functional	PBE 泛函
+projector augmented-wave (PAW)	投影缀加波
+pseudopotential	赝势
+cutoff energy	截断能（平面波）
+k-point mesh	k 点网格
+self-consistent field (SCF)	自洽场
+ab initio molecular dynamics (AIMD)	第一性原理分子动力学
+ensemble	系综
+thermostat	恒温器
+barostat	恒压器
+timestep	时间步长
+periodic boundary conditions (PBC)	周期性边界条件
+supercell	超胞
+primitive cell	原胞
+structure relaxation	结构弛豫
+equilibration	平衡段
+production run	生产段
+trajectory	轨迹
+configuration	构型
+snapshot	快照
+single-point calculation	单点计算
+data augmentation	数据增强
+run a job	跑一个算例
+submit a job	提交作业
+queue	队列
+hang	卡住不动
+crash	崩溃
+segfault	段错误
+out of memory (OOM)	内存或显存爆掉
+blow up	跑飞；数值爆炸
+NaN	非数（跑飞前兆）
+table lookup	查表
+build	编译
+link	链接
+shared library	动态库
+header file	头文件
+compiler flags	编译选项
+environment variable	环境变量
+module load	加载模块
+node	节点
+core	核
+MPI rank	MPI 进程
+thread	线程
+VRAM	显存
+input script	输入脚本
+pair_style	势函数声明命令
+pair_coeff	势参数设置命令
+potential file	势文件（.sus2）
+log file	日志文件
+wall time	墙钟时间
+throughput	吞吐
+post-processing	后处理
+reproducibility	可复现性
+batch	批处理
+ghost atom	幽灵原子
+halo	晕区（2r_c 缓冲）
+mean absolute error (MAE)	平均绝对误差
+root mean square error (RMSE)	均方根误差
+mean relative error (MRE)	平均相对误差
+mean absolute percentage error (MAPE)	平均绝对百分比误差
+coefficient of determination (R²)	决定系数 R²
+per atom	每原子归一
+parameter count	参数量
+speedup	加速比
+parallel efficiency	并行效率
+convergence criterion	收敛判据
+force threshold	力阈值（筛帧）
+error distribution	误差分布
+extrapolation error	外推误差
+benchmark	基准测试
+meV/atom	每原子毫电子伏（能量误差）
+meV/Å	毫电子伏每埃（力误差）
+eV/Å	电子伏每埃；1 eV/Å=1.602e-9 N
+GPa	吉帕；1 GPa=10 kbar
+W/(m·K)	热导率单位
+W/(m²·K)	界面热导单位
+cm²/s	扩散系数单位
+Matom-step/s	每秒百万原子步（MD 吞吐）
+THz	太赫兹；1 THz≈33.36 cm⁻¹
+fs	飞秒
+ps	皮秒
+ns	纳秒
