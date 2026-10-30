@@ -72,6 +72,15 @@ curl -H "Authorization: Bearer $TOKEN" localhost:7788/api/v1/terms?limit=3
 
 > 服务默认只绑 `127.0.0.1`。要手机上用，建议走 Tailscale 或 SSH 隧道，而不是 `--host 0.0.0.0`。
 
+<details>
+<summary>装依赖时看到 <code>ERR_PNPM_IGNORED_BUILDS</code>？</summary>
+
+pnpm 10+ 默认不执行依赖的安装脚本。本项目已在 `pnpm-workspace.yaml` 与 `.npmrc` 里放行
+`better-sqlite3` / `esbuild`；better-sqlite3 在主流平台自带预编译二进制，通常不影响运行。
+若确实装不上，执行 `pnpm approve-builds` 手动勾选，或 `node -e "require('better-sqlite3')"` 自检。
+
+</details>
+
 ---
 
 ## 给 Agent 用
