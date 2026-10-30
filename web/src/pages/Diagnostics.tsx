@@ -1,5 +1,5 @@
-import { useEffect, useState } from 'react'
-import { api, type Diagnostics as Diag } from '../api.ts'
+import { useApi } from '../useApi.ts'
+import type { Diagnostics as Diag } from '../api.ts'
 
 function pct(n: number): string {
   if (!Number.isFinite(n)) return '—'
@@ -7,22 +7,16 @@ function pct(n: number): string {
 }
 
 export default function Diagnostics() {
-  const [d, setD] = useState<Diag | null>(null)
-  const [error, setError] = useState('')
-
-  useEffect(() => {
-    api<Diag>('/stats/diagnostics')
-      .then(setD)
-      .catch((e) => setError((e as Error).message))
-  }, [])
+  const { data: d, error, loading } = useApi<Diag>('/stats/diagnostics')
 
   if (error) return <div className="error">{error}</div>
-  if (!d) return <div className="empty">载入中…</div>
+  if (loading && !d) return <div className="empty">载入中…</div>
+  if (!d) return null
 
   return (
     <>
       <h1>诊断</h1>
-      <p className="sub">数字少而准，优先看第三行——那是你欠的技术债。</p>
+      <p className="sub">数字少而准，优先看第二行——那是你欠的技术债。</p>
 
       <div className="grid">
         <div className="metric">

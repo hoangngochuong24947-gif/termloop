@@ -56,7 +56,7 @@ Agent 新建术语、改首选写法、改判分规则 → 进 `Draft` 队列等
 
 ```bash
 pnpm install
-pnpm test          # 46 个用例
+pnpm test          # 60 个用例
 pnpm build         # 构建前端
 pnpm seed          # 导入仓库自带的 261 条种子词表
 pnpm start         # http://127.0.0.1:7788
@@ -144,7 +144,7 @@ Event    任何写入的不可变记录，可回滚
 
 - 261 条存量词表迁移：规则解析 261/261、0 失败、0 低置信度
 - 词表 CRUD、JSONL 快照、事件日志
-- 卡片自动生成、中英判分、简化调度器
+- 卡片自动生成、中英判分、FSRS-6 调度（间隔、稳定性、难度、状态全部落库）
 - Draft/Inbox 审核流、`X-TermLoop-Client` 身份、Agent 改译名被 428 拦下
 - 15 个 API 端点、OpenAPI 自描述、`/agent.md`
 - Web 界面：复习 / 词表 / Inbox / 诊断
@@ -155,7 +155,7 @@ Event    任何写入的不可变记录，可回滚
 |---|---|
 | 审计（`POST /api/v1/audit`） | 返回 501，排期 M5 |
 | TTS（`POST /api/v1/tts`） | 返回 501，排期 M6 |
-| 调度算法 | 简化实现，接口对齐 FSRS 但**不是** FSRS，参数未拟合 |
+| ~~调度算法~~ | ✅ 已接入 `ts-fsrs`（FSRS-6），参数见 `src/core/sched.ts` |
 | `.termpack` 分享包 | 未实现，目前只有 JSONL |
 | PWA / 离线 | 未做 |
 | 在 UI 里走 Draft 流程的编辑 | 未做，UI 目前只读词表 |
@@ -164,6 +164,10 @@ Event    任何写入的不可变记录，可回滚
 ---
 
 ## 判分
+
+调度用 `ts-fsrs`（FSRS-6）：关掉 short-term 学习步（一天的节奏，不会十分钟后再来一次），
+开着 fuzz（避免 261 张卡同一天集体到期）。保存 stability / difficulty / scheduled_days /
+learning_steps / state 五个字段，复习历史里也留了当时的调度快照，**永远可重算**。
 
 规则优先，可解释、可单测。三档 `correct / partial / wrong`，映射到 `good / hard / again`，
 但 `verdict` 与 `rating` 分开存储——人改判不会覆盖原始判定。

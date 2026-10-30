@@ -1,5 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { api, type Preview, type QueueItem, type Term } from '../api.ts'
+import { Math } from '../Math.tsx'
+import { useApi } from '../useApi.ts'
 
 const RATINGS = [
   { key: '1', rating: 'again', label: '忘了', hint: 'Again' },
@@ -11,45 +13,34 @@ const RATINGS = [
 const KEYMAP: Record<string, string> = { '1': 'again', '2': 'hard', '3': 'good', '4': 'easy' }
 
 export default function Review() {
-  const [queue, setQueue] = useState<QueueItem[]>([])
+  const queueResp = useApi<{ items: QueueItem[] }>('/review/next?limit=10')
+  const queue = queueResp.data?.items ?? []
+
   const [idx, setIdx] = useState(0)
   const [answer, setAnswer] = useState('')
   const [preview, setPreview] = useState<Preview | null>(null)
   const [revealed, setRevealed] = useState<Term | null>(null)
-  const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [reviewed, setReviewed] = useState(0)
   const inputRef = useRef<HTMLInputElement>(null)
 
   const card = queue[idx] ?? null
 
-  const load = useCallback(async () => {
-    setLoading(true)
-    setError('')
-    try {
-      const r = await api<{ items: QueueItem[] }>('/review/next?limit=10')
-      setQueue(r.items)
-      setIdx(0)
-      setAnswer('')
-      setPreview(null)
-      setRevealed(null)
-    } catch (e) {
-      setError((e as Error).message)
-    } finally {
-      setLoading(false)
-    }
-  }, [])
-
+  // 队列换了（新的一批）就重置本轮会话
   useEffect(() => {
-    void load()
-  }, [load])
+    setIdx(0)
+    setAnswer('')
+    setPreview(null)
+    setRevealed(null)
+  }, [queueResp.data])
 
   useEffect(() => {
     inputRef.current?.focus()
-  }, [idx, loading])
+  }, [idx, queueResp.loading])
 
   const reveal = useCallback(async () => {
     if (!card) return
+    setError('')
     try {
       const [p, term] = await Promise.all([
         api<Preview>(`/review/${card.card_id}/answer?dry_run=1`, {
@@ -68,6 +59,7 @@ export default function Review() {
   const rate = useCallback(
     async (rating: string) => {
       if (!card || !preview) return
+      setError('')
       try {
         await api(`/review/${card.card_id}/answer`, {
           method: 'POST',
@@ -80,13 +72,13 @@ export default function Review() {
           setPreview(null)
           setRevealed(null)
         } else {
-          await load()
+          queueResp.reload()
         }
       } catch (e) {
         setError((e as Error).message)
       }
     },
-    [card, preview, answer, idx, queue.length, load],
+    [card, preview, answer, idx, queue.length, queueResp],
   )
 
   const latest = useRef({ reveal, rate, preview })
@@ -121,8 +113,8 @@ export default function Review() {
     return () => window.removeEventListener('keydown', onKey)
   }, [])
 
-  if (loading) return <div className="empty">载入中…</div>
-  if (error) return <div className="error">{error}</div>
+  if (queueResp.loading && !queueResp.data) return <div className="empty">载入中…</div>
+  if (queueResp.error) return <div className="error">{queueResp.error}</div>
 
   if (!card) {
     return (
@@ -133,7 +125,7 @@ export default function Review() {
           <br />
           去 <b>词表</b> 里补充术语，或者明天再来。
         </p>
-        <button className="btn" style={{ marginTop: '1rem' }} onClick={() => void load()}>
+        <button className="btn" style={{ marginTop: '1rem' }} onClick={queueResp.reload}>
           重新载入
         </button>
       </div>
@@ -146,6 +138,8 @@ export default function Review() {
 
   return (
     <div className="review">
+      {error && <div className="error">{error}</div>}
+
       <div>
         <div className="review-progress">
           <span>
@@ -160,7 +154,9 @@ export default function Review() {
       </div>
 
       <div>
-        <div className="prompt">{card.prompt}</div>
+        <div className="prompt">
+          <Math tex={card.prompt} />
+        </div>
         <div className="ctx">
           {card.context.map((c) => (
             <span className="chip" key={c}>

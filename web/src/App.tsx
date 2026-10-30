@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
-import { api, getToken, setToken } from './api.ts'
+import { getToken, setToken } from './api.ts'
+import { useApi } from './useApi.ts'
 import Review from './pages/Review.tsx'
 import Terms from './pages/Terms.tsx'
 import Inbox from './pages/Inbox.tsx'
@@ -17,17 +18,22 @@ const TABS: Array<{ id: Tab; label: string }> = [
 export default function App() {
   const [tab, setTab] = useState<Tab>('review')
   const [token, setTok] = useState(getToken())
-  const [counts, setCounts] = useState<{ pending: number; due: number } | null>(null)
 
+  const diag = useApi<{ totals: { terms: number; due_today: number } }>(
+    token ? '/stats/diagnostics' : null,
+  )
+  const drafts = useApi<{ items: unknown[]; total: number }>(token ? '/drafts' : null)
+
+  const pending = drafts.data?.total ?? 0
+  const due = diag.data?.totals.due_today ?? 0
+
+  // 换页时刷新顶部角标
   useEffect(() => {
     if (!token) return
-    api<{ totals: { terms: number; due_today: number } }>('/stats/diagnostics')
-      .then((d) => setCounts((c) => ({ pending: c?.pending ?? 0, due: d.totals.due_today })))
-      .catch(() => {})
-    api<{ items: unknown[]; total: number }>('/drafts')
-      .then((d) => setCounts((c) => ({ pending: d.total, due: c?.due ?? 0 })))
-      .catch(() => {})
-  }, [token, tab])
+    diag.reload()
+    drafts.reload()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [tab, token])
 
   if (!token) {
     return (
@@ -36,11 +42,7 @@ export default function App() {
         <p className="sub">
           从服务端读取 token：<code>cat ~/.termloop/token</code>
         </p>
-        <input
-          defaultValue=""
-          placeholder="粘贴 token"
-          onChange={(e) => setTok(e.target.value.trim())}
-        />
+        <input defaultValue="" placeholder="粘贴 token" onChange={(e) => setTok(e.target.value.trim())} />
         <button
           className="btn primary"
           onClick={() => {
@@ -65,16 +67,16 @@ export default function App() {
           {TABS.map((t) => (
             <button key={t.id} data-active={tab === t.id} onClick={() => setTab(t.id)}>
               {t.label}
-              {t.id === 'inbox' && counts?.pending ? (
+              {t.id === 'inbox' && pending > 0 ? (
                 <span className="chip accent" style={{ marginLeft: 6 }}>
-                  {counts.pending}
+                  {pending}
                 </span>
               ) : null}
             </button>
           ))}
         </nav>
         <div className="spacer" />
-        <div className="stat">{counts ? `今日待复习 ${counts.due}` : ''}</div>
+        <div className="stat">{due > 0 ? `今日待复习 ${due}` : ''}</div>
       </header>
 
       <main className={tab === 'terms' ? 'wide' : ''}>

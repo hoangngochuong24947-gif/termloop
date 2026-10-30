@@ -1,35 +1,26 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useState } from 'react'
 import { api, type Draft } from '../api.ts'
+import { useApi } from '../useApi.ts'
 
 export default function Inbox() {
-  const [drafts, setDrafts] = useState<Draft[]>([])
-  const [error, setError] = useState('')
+  const { data, error, loading, reload } = useApi<{ items: Draft[]; total: number }>('/drafts')
   const [busy, setBusy] = useState<string | null>(null)
+  const [mutationError, setMutationError] = useState('')
 
-  const load = useCallback(async () => {
-    setError('')
-    try {
-      const r = await api<{ items: Draft[]; total: number }>('/drafts')
-      setDrafts(r.items)
-    } catch (e) {
-      setError((e as Error).message)
-    }
-  }, [])
-
-  useEffect(() => {
-    void load()
-  }, [load])
+  const drafts = data?.items ?? []
+  const total = data?.total ?? 0
 
   async function decide(id: string, action: 'accept' | 'reject') {
     setBusy(id)
+    setMutationError('')
     try {
       await api(`/drafts/${id}/${action}`, {
         method: 'POST',
         body: JSON.stringify(action === 'reject' ? { reason: 'rejected in UI' } : {}),
       })
-      setDrafts((d) => d.filter((x) => x.id !== id))
+      reload()
     } catch (e) {
-      setError((e as Error).message)
+      setMutationError((e as Error).message)
     } finally {
       setBusy(null)
     }
@@ -38,13 +29,13 @@ export default function Inbox() {
   return (
     <>
       <h1>Inbox</h1>
-      <p className="sub">
-        Agent 提交的候选。你只做判断题：接受、拒绝，或者先放着。
-      </p>
+      <p className="sub">待确认 {total} 条 · Agent 提交的候选，你只做判断题</p>
 
       {error && <div className="error">{error}</div>}
+      {mutationError && <div className="error">{mutationError}</div>}
+      {loading && !data && <div className="empty">载入中…</div>}
 
-      {drafts.length === 0 && (
+      {!loading && drafts.length === 0 && (
         <div className="empty">
           <h2>没有待确认的候选</h2>
           <p>

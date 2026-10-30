@@ -20,6 +20,15 @@ export interface Migration {
  */
 export const MIGRATIONS: Migration[] = [
   { version: 1, name: 'initial', sql: SCHEMA_SQL },
+  {
+    version: 2,
+    name: 'cards: fsrs state fields',
+    sql: `
+      ALTER TABLE cards ADD COLUMN scheduled_days INTEGER NOT NULL DEFAULT 0;
+      ALTER TABLE cards ADD COLUMN learning_steps INTEGER NOT NULL DEFAULT 0;
+      ALTER TABLE cards ADD COLUMN state INTEGER NOT NULL DEFAULT 0;
+    `,
+  },
 ]
 
 const BOOTSTRAP = `

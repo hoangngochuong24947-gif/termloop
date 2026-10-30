@@ -1,5 +1,7 @@
-import { useCallback, useEffect, useState } from 'react'
-import { api, type Term } from '../api.ts'
+import { useEffect, useState } from 'react'
+import { Math } from '../Math.tsx'
+import { useApi } from '../useApi.ts'
+import type { Term } from '../api.ts'
 
 const KINDS = ['', 'term', 'phrase', 'procedural', 'metric', 'unit', 'symbol']
 
@@ -11,49 +13,35 @@ function EvidenceChip({ value }: { value: string }) {
 
 export default function Terms() {
   const [q, setQ] = useState('')
+  const [debounced, setDebounced] = useState('')
   const [kind, setKind] = useState('')
-  const [items, setItems] = useState<Term[]>([])
-  const [total, setTotal] = useState(0)
   const [selected, setSelected] = useState<Term | null>(null)
-  const [error, setError] = useState('')
 
-  const search = useCallback(async () => {
-    setError('')
-    try {
-      const params = new URLSearchParams({ limit: '80' })
-      if (q.trim()) params.set('q', q.trim())
-      if (kind) params.set('kind', kind)
-      const r = await api<{ items: Term[]; total: number }>(`/terms?${params}`)
-      setItems(r.items)
-      setTotal(r.total)
-    } catch (e) {
-      setError((e as Error).message)
-    }
-  }, [q, kind])
-
+  // 打字不直接打接口：250ms 防抖
   useEffect(() => {
-    void search()
-  }, [search])
+    const t = setTimeout(() => setDebounced(q.trim()), 250)
+    return () => clearTimeout(t)
+  }, [q])
+
+  const params = new URLSearchParams({ limit: '80' })
+  if (debounced) params.set('q', debounced)
+  if (kind) params.set('kind', kind)
+
+  const { data, error, loading } = useApi<{ items: Term[]; total: number }>(`/terms?${params}`)
+  const items = data?.items ?? []
+  const total = data?.total ?? 0
 
   return (
     <>
       <h1>词表</h1>
       <p className="sub">
-        {total} 条术语 · 点开看全部字段与变更历史
+        {total} 条术语 · 点开看全部字段
+        {loading ? ' · 检索中…' : ''}
       </p>
 
       <div className="toolbar">
-        <input
-          value={q}
-          placeholder="搜索英文 / 中文 / 解释…"
-          onChange={(e) => setQ(e.target.value)}
-        />
-        <select
-          className="btn"
-          value={kind}
-          onChange={(e) => setKind(e.target.value)}
-          style={{ paddingRight: '0.6rem' }}
-        >
+        <input value={q} placeholder="搜索英文 / 中文 / 解释…" onChange={(e) => setQ(e.target.value)} />
+        <select className="btn" value={kind} onChange={(e) => setKind(e.target.value)}>
           {KINDS.map((k) => (
             <option key={k} value={k}>
               {k || '全部类型'}
@@ -79,7 +67,7 @@ export default function Terms() {
             </div>
           )
         })}
-        {items.length === 0 && <div className="empty">没有匹配的术语</div>}
+        {!loading && items.length === 0 && <div className="empty">没有匹配的术语</div>}
       </div>
 
       {selected && (
@@ -109,7 +97,7 @@ export default function Terms() {
                     <span className="chip" style={{ marginRight: 6 }}>
                       {s.type}
                     </span>
-                    {s.text}
+                    <Math tex={s.text} />
                     {s.status !== 'preferred' && (
                       <span style={{ color: 'var(--muted)', marginLeft: 6 }}>({s.status})</span>
                     )}

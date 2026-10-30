@@ -14,7 +14,7 @@ import { migrate } from './migrate.ts'
 import { planCards } from '../core/cardgen.ts'
 import { canon } from '../core/grade.ts'
 import { buildQuestion, judge, type Question } from '../core/review.ts'
-import { schedule, suggestRating, type Rating, type SchedState } from '../core/sched.ts'
+import { schedule, suggestRating, type RatingName, type SchedState } from '../core/sched.ts'
 import {
   DraftInputSchema,
   TermInputSchema,
@@ -116,8 +116,8 @@ export interface AnswerResult {
   verdict: 'correct' | 'partial' | 'wrong' | null
   decided_by: 'rule' | 'human'
   matched: string[]
-  suggested_rating: Rating
-  rating: Rating
+  suggested_rating: RatingName
+  rating: RatingName
   sched: SchedState
   answer: { name: string | null; explain: string; accepted: string[] }
 }
@@ -162,6 +162,9 @@ interface CardRow {
   stability: number
   difficulty: number
   last_review: string | null
+  scheduled_days: number
+  learning_steps: number
+  state: number
 }
 
 function pathDirname(p: string): string {
@@ -665,7 +668,7 @@ export class Repo {
 
   answerCard(
     cardId: string,
-    body: { answer_raw?: string; rating?: Rating; elapsed_ms?: number },
+    body: { answer_raw?: string; rating?: RatingName; elapsed_ms?: number },
     actor: Actor,
   ): AnswerResult {
     const card = this.db.prepare('SELECT * FROM cards WHERE id = ?').get(cardId) as CardRow | undefined
@@ -680,7 +683,7 @@ export class Repo {
       throw new BadRequestError('self_graded_card_requires_rating')
     }
 
-    const rating: Rating = body.rating ?? suggestRating(j.verdict ?? 'partial')
+    const rating: RatingName = body.rating ?? suggestRating(j.verdict ?? 'partial')
     const now = new Date()
     const prev: SchedState = {
       stability: card.stability,
@@ -689,6 +692,9 @@ export class Repo {
       reps: card.reps,
       lapses: card.lapses,
       last_review: card.last_review,
+      scheduled_days: card.scheduled_days ?? 0,
+      learning_steps: card.learning_steps ?? 0,
+      state: card.state ?? 0,
     }
     const next = schedule(prev, rating, now)
 
@@ -715,9 +721,22 @@ export class Repo {
         )
       this.db
         .prepare(
-          `UPDATE cards SET stability=?, difficulty=?, reps=?, lapses=?, due=?, last_review=? WHERE id=?`,
+          `UPDATE cards SET stability=?, difficulty=?, reps=?, lapses=?, due=?, last_review=?,
+                           scheduled_days=?, learning_steps=?, state=?
+           WHERE id=?`,
         )
-        .run(next.stability, next.difficulty, next.reps, next.lapses, next.due, next.last_review, cardId)
+        .run(
+          next.stability,
+          next.difficulty,
+          next.reps,
+          next.lapses,
+          next.due,
+          next.last_review,
+          next.scheduled_days,
+          next.learning_steps,
+          next.state,
+          cardId,
+        )
       this.logEvent(actor, 'review.answer', 'card', cardId, { verdict: j.verdict, rating })
     })
     tx()

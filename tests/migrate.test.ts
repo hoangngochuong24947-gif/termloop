@@ -2,6 +2,7 @@ import Database from 'better-sqlite3'
 import { describe, expect, it } from 'vitest'
 
 import { MIGRATIONS, migrate, schemaVersion } from '../src/db/migrate.ts'
+import { SCHEMA_SQL } from '../src/db/schema.ts'
 import { Repo } from '../src/db/repo.ts'
 
 describe('迁移', () => {
@@ -26,11 +27,10 @@ describe('迁移', () => {
     expect(migrate(db).applied).toEqual([])
   })
 
-  it('升级一个「建过表但没有版本记录」的旧库，数据不丢', () => {
+  it('升级一个「只有 v1 表结构、没有版本记录」的旧库，数据不丢', () => {
     const db = new Database(':memory:')
-    // 模拟 v0.1 之前的状态：schema 已经建出来，但没有 schema_migrations
-    migrate(db)
-    db.exec('DROP TABLE schema_migrations')
+    // 精确模拟 v0.1 的状态：schema 是 v1，但没有 schema_migrations 表
+    db.exec(SCHEMA_SQL)
     db.prepare(
       `INSERT INTO terms (id, slug, kind, level, importance, state, domain, created_at, updated_at)
        VALUES ('t1','phonon','term','domain',3,'active',NULL,'2026-01-01','2026-01-01')`,
@@ -38,8 +38,12 @@ describe('迁移', () => {
 
     const r = migrate(db)
     expect(r.from).toBe(0)
-    expect(r.applied).toEqual([1])
+    expect(r.applied).toEqual(MIGRATIONS.map((m) => m.version))
     expect((db.prepare('SELECT COUNT(*) c FROM terms').get() as { c: number }).c).toBe(1)
+
+    // v2 的列确实加上了
+    const cols = (db.prepare('PRAGMA table_info(cards)').all() as Array<{ name: string }>).map((c) => c.name)
+    expect(cols).toEqual(expect.arrayContaining(['scheduled_days', 'learning_steps', 'state']))
   })
 
   it('Repo 启动即迁移，且 health 能读到版本', () => {
