@@ -9,7 +9,8 @@ export default function Inbox() {
   const load = useCallback(async () => {
     setError('')
     try {
-      setDrafts(await api<Draft[]>('/drafts'))
+      const r = await api<{ items: Draft[]; total: number }>('/drafts')
+      setDrafts(r.items)
     } catch (e) {
       setError((e as Error).message)
     }

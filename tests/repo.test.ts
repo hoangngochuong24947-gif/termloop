@@ -152,13 +152,13 @@ describe('Draft 流程', () => {
 
   it('提交后进入 Inbox，接受后才变成 Term', () => {
     const d = repo.createDraft(draft(), { type: 'agent', name: 'test-agent' })
-    expect(repo.listDrafts()).toHaveLength(1)
+    expect(repo.listDrafts().items).toHaveLength(1)
     expect(repo.listTerms().total).toBe(0)
 
     const t = repo.acceptDraft(d.id, ACTOR)
     expect(t.state).toBe('active')
     expect(repo.listTerms().total).toBe(1)
-    expect(repo.listDrafts()).toHaveLength(0)
+    expect(repo.listDrafts().items).toHaveLength(0)
   })
 
   it('拒绝不会产生 Term', () => {

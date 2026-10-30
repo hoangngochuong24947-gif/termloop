@@ -426,7 +426,7 @@ Content-Type: application/json
 | 服务端 | **Hono** | 极轻、路由即函数、原生支持 zod 校验与 `node-server` 适配器 | Fastify（更重）、NestJS（本项目不需要 DI 容器与模块系统） |
 | 数据库 | **SQLite**（`better-sqlite3`, WAL） | 单文件、可复制、可备份、并发够用 | `node:sqlite`（实验性，API 尚薄） |
 | 数据访问 | **裸 SQL + zod 校验的 repo 层** | 查询简单、语义透明、Agent 易读易改 | Drizzle（可行，但对本项目是额外抽象） |
-| 迁移 | `migrations/NNN_*.sql` + 30 行 runner | 可读、可审、无魔法 | — |
+| 迁移 | `schema_migrations` 版本表 + 代码内 `MIGRATIONS` 数组（`src/db/migrate.ts`） | 启动即迁移；只增不改；老库升级可验证 | 外置 `.sql` 文件（暂不需要） |
 | 校验 | **zod** | 一份 schema 同时服务 API 入参、DB 出参、termpack 格式 | — |
 | 前端 | React 19 + Vite + TypeScript | 生态最成熟，多平台构建一致 | — |
 | 数据获取 | TanStack Query | 缓存、重试、失效语义完整 | — |

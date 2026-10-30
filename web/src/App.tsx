@@ -24,8 +24,8 @@ export default function App() {
     api<{ totals: { terms: number; due_today: number } }>('/stats/diagnostics')
       .then((d) => setCounts((c) => ({ pending: c?.pending ?? 0, due: d.totals.due_today })))
       .catch(() => {})
-    api<unknown[]>('/drafts')
-      .then((d) => setCounts((c) => ({ pending: d.length, due: c?.due ?? 0 })))
+    api<{ items: unknown[]; total: number }>('/drafts')
+      .then((d) => setCounts((c) => ({ pending: d.total, due: c?.due ?? 0 })))
       .catch(() => {})
   }, [token, tab])
 

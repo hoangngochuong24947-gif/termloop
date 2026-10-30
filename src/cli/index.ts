@@ -7,6 +7,7 @@
 
 import fs from 'node:fs'
 import path from 'node:path'
+import { parseArgs } from 'node:util'
 
 import { serve } from '@hono/node-server'
 
@@ -17,33 +18,46 @@ import { Repo } from '../db/repo.ts'
 
 // ── argv ─────────────────────────────────────────────────────────────────────
 
+const OPTIONS = {
+  port: { type: 'string' },
+  host: { type: 'string' },
+  db: { type: 'string' },
+  token: { type: 'string' },
+  dir: { type: 'string' },
+  out: { type: 'string' },
+  limit: { type: 'string' },
+  q: { type: 'string' },
+  kind: { type: 'string' },
+  state: { type: 'string' },
+  readonly: { type: 'boolean' },
+  yes: { type: 'boolean' },
+  help: { type: 'boolean', short: 'h' },
+} as const
+
 interface Args {
   command: string
   positional: string[]
   flags: Record<string, string | boolean>
 }
 
-function parseArgs(argv: string[]): Args {
-  const positional: string[] = []
-  const flags: Record<string, string | boolean> = {}
-
-  for (let i = 0; i < argv.length; i++) {
-    const a = argv[i]!
-    if (a.startsWith('--')) {
-      const key = a.slice(2)
-      const next = argv[i + 1]
-      if (next && !next.startsWith('--')) {
-        flags[key] = next
-        i++
-      } else {
-        flags[key] = true
-      }
-    } else {
-      positional.push(a)
-    }
+function parseCli(argv: string[]): Args {
+  let values: Record<string, string | boolean | undefined>
+  let positionals: string[]
+  try {
+    const parsed = parseArgs({ args: argv, options: OPTIONS, allowPositionals: true, strict: true })
+    values = parsed.values
+    positionals = parsed.positionals
+  } catch (err) {
+    console.error(`\n  参数错误：${(err as Error).message}\n  用 termloop help 看用法\n`)
+    process.exit(1)
   }
 
-  return { command: positional.shift() ?? 'help', positional, flags }
+  const flags: Record<string, string | boolean> = {}
+  for (const [k, v] of Object.entries(values)) {
+    if (v !== undefined) flags[k] = v
+  }
+
+  return { command: positionals.shift() ?? 'help', positional: positionals, flags }
 }
 
 const C = {
@@ -63,7 +77,7 @@ async function cmdServe(args: Args): Promise<void> {
   const app = createApp(repo, cfg)
 
   serve({ fetch: app.fetch, port: cfg.port, hostname: cfg.host }, (info) => {
-    const { terms } = { terms: (repo.db.prepare('SELECT COUNT(*) c FROM terms').get() as { c: number }).c }
+    const terms = (repo.db.prepare('SELECT COUNT(*) c FROM terms').get() as { c: number }).c
     console.log('')
     console.log(`  ${C.accent('TermLoop')} ${C.dim('v0.1.0')}`)
     console.log('')
@@ -255,7 +269,7 @@ function cmdHelp(): void {
 
 // ── 入口 ─────────────────────────────────────────────────────────────────────
 
-const args = parseArgs(process.argv.slice(2))
+const args = parseCli(process.argv.slice(2))
 
 switch (args.command) {
   case 'serve':

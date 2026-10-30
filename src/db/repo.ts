@@ -10,18 +10,14 @@ import { randomBytes } from 'node:crypto'
 import fs from 'node:fs'
 import path from 'node:path'
 
-import { SCHEMA_SQL } from './schema.ts'
+import { migrate } from './migrate.ts'
 import { planCards } from '../core/cardgen.ts'
 import { canon } from '../core/grade.ts'
 import { buildQuestion, judge, type Question } from '../core/review.ts'
-import { initialSched, schedule, suggestRating, type Rating, type SchedState } from '../core/sched.ts'
+import { schedule, suggestRating, type Rating, type SchedState } from '../core/sched.ts'
 import {
-  AnnotationSchema,
   DraftInputSchema,
-  LevelSchema,
-  SurfaceSchema,
   TermInputSchema,
-  ZhSideSchema,
   type Annotation,
   type CardDirection,
   type DraftInput,
@@ -184,7 +180,7 @@ export class Repo {
     this.db = new Database(path)
     this.db.pragma('journal_mode = WAL')
     this.db.pragma('foreign_keys = ON')
-    this.db.exec(SCHEMA_SQL)
+    migrate(this.db)
   }
 
   close(): void {
@@ -555,11 +551,25 @@ export class Repo {
     }
   }
 
-  listDrafts(status: string = 'pending'): Draft[] {
+  listDrafts(
+    status: string = 'pending',
+    opts: { limit?: number; cursor?: string } = {},
+  ): { items: Draft[]; total: number; next: string | null } {
+    const limit = Math.min(Math.max(opts.limit ?? 100, 1), 500)
+    const where = opts.cursor ? 'status = ? AND id < ?' : 'status = ?'
+    const params = opts.cursor ? [status, opts.cursor, limit + 1] : [status, limit + 1]
+
     const rows = this.db
-      .prepare('SELECT id FROM drafts WHERE status = ? ORDER BY created_at DESC LIMIT 500')
-      .all(status) as Array<{ id: string }>
-    return rows.map((r) => this.getDraft(r.id)!).filter(Boolean)
+      .prepare(`SELECT id FROM drafts WHERE ${where} ORDER BY id DESC LIMIT ?`)
+      .all(...(params as never[])) as Array<{ id: string }>
+
+    const total = (
+      this.db.prepare('SELECT COUNT(*) AS c FROM drafts WHERE status = ?').get(status) as { c: number }
+    ).c
+
+    const items = rows.slice(0, limit).map((r) => this.getDraft(r.id)!).filter(Boolean)
+    const next = rows.length > limit ? (items[items.length - 1]?.id ?? null) : null
+    return { items, total, next }
   }
 
   acceptDraft(id: string, actor: Actor, override?: Partial<DraftInput>): Term {
@@ -680,8 +690,7 @@ export class Repo {
       lapses: card.lapses,
       last_review: card.last_review,
     }
-    const base = card.reps === 0 ? { ...prev, ...initialSched(now), stability: 1, difficulty: prev.difficulty } : prev
-    const next = schedule(base, rating, now)
+    const next = schedule(prev, rating, now)
 
     const question = buildQuestion(term, cardId, card.direction)
 
@@ -732,7 +741,7 @@ export class Repo {
       answer: {
         name: keyRow?.name ?? null,
         explain: keyRow?.explain ?? '',
-        accepted: card.direction === 'en2zh' ? accepted : accepted,
+        accepted,
       },
     }
   }
@@ -865,5 +874,3 @@ export class DuplicateTermError extends Error {
   }
 }
 
-// CJS 互通：schema 里用到的校验器在这里 re-export，方便 CLI/测试直接引用
-export { AnnotationSchema, LevelSchema, SurfaceSchema, ZhSideSchema }

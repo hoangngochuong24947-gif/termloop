@@ -11,6 +11,7 @@ import fs from 'node:fs'
 import path from 'node:path'
 import { timingSafeEqual } from 'node:crypto'
 
+import { serveStatic } from '@hono/node-server/serve-static'
 import { Hono } from 'hono'
 import type { Context } from 'hono'
 
@@ -19,11 +20,13 @@ import { DraftInputSchema, kindList } from '../core/types.ts'
 import {
   BadRequestError,
   ConflictError,
+  DuplicateTermError,
   NotFoundError,
   Repo,
   type Actor,
 } from '../db/repo.ts'
 import type { Config } from '../config.ts'
+import { schemaVersion } from '../db/migrate.ts'
 
 // ── 小工具 ───────────────────────────────────────────────────────────────────
 
@@ -55,18 +58,6 @@ function actorOf(c: Context): Actor {
 function isDryRun(c: Context): boolean {
   const v = c.req.query('dry_run')
   return v === '1' || v === 'true'
-}
-
-const MIME: Record<string, string> = {
-  '.html': 'text/html; charset=utf-8',
-  '.js': 'text/javascript; charset=utf-8',
-  '.css': 'text/css; charset=utf-8',
-  '.json': 'application/json; charset=utf-8',
-  '.svg': 'image/svg+xml',
-  '.png': 'image/png',
-  '.woff2': 'font/woff2',
-  '.ico': 'image/x-icon',
-  '.map': 'application/json',
 }
 
 // ── 应用 ─────────────────────────────────────────────────────────────────────
@@ -120,6 +111,7 @@ export function createApp(repo: Repo, cfg: Config) {
       ok: true,
       service: 'termloop',
       version: '0.1.0',
+      schema_version: schemaVersion(repo.db),
       readonly: cfg.readonly,
       db: cfg.dbPath,
       time: new Date().toISOString(),
@@ -213,7 +205,15 @@ export function createApp(repo: Repo, cfg: Config) {
 
   const DRAFT_MAX_BATCH = 200
 
-  app.get('/api/v1/drafts', (c) => c.json(repo.listDrafts(c.req.query('status') ?? 'pending')))
+  app.get('/api/v1/drafts', (c) => {
+    const q = c.req.query()
+    return c.json(
+      repo.listDrafts(q.status ?? 'pending', {
+        limit: q.limit ? Number(q.limit) : undefined,
+        cursor: q.cursor,
+      }),
+    )
+  })
 
   app.post('/api/v1/drafts', async (c) => {
     const body = await c.req.json().catch(() => null)
@@ -394,9 +394,13 @@ export function createApp(repo: Repo, cfg: Config) {
       return c.body(repo.exportJsonl())
     }
     if (format === 'json') {
-      const { items } = repo.listTerms({ limit: 200 })
-      void items
-      return c.json({ exported_at: new Date().toISOString(), jsonl: repo.exportJsonl() })
+      const items = repo
+        .exportJsonl()
+        .trim()
+        .split('\n')
+        .filter(Boolean)
+        .map((l) => JSON.parse(l))
+      return c.json({ format: 'termloop/terms-array', exported_at: new Date().toISOString(), items })
     }
     return c.json(problem(400, 'unsupported_format', `不支持的格式: ${format}，可用 jsonl|json`), 400)
   })
@@ -425,31 +429,28 @@ export function createApp(repo: Repo, cfg: Config) {
 
   // ── 静态资源（web 构建产物） ───────────────────────────────────────────────
 
+  // 用官方中间件，别再手写 MIME 表和穿越防护。
+  if (fs.existsSync(cfg.webDist)) {
+    app.use('/assets/*', serveStatic({ root: cfg.webDist }))
+  }
+
   app.get('*', (c) => {
-    const url = new URL(c.req.url)
-    if (url.pathname.startsWith('/api/')) {
+    const { pathname } = new URL(c.req.url)
+
+    if (pathname.startsWith('/api/')) {
       return c.json(problem(404, 'not_found', '未知端点，见 /api/v1/openapi.json'), 404)
     }
 
-    const indexFile = path.join(cfg.webDist, 'index.html')
-    const rel = url.pathname === '/' ? 'index.html' : url.pathname.replace(/^\/+/, '')
-    const candidate = path.join(cfg.webDist, rel)
-    const normalized = path.normalize(candidate)
-
-    if (normalized.startsWith(cfg.webDist) && fs.existsSync(normalized) && fs.statSync(normalized).isFile()) {
-      const ext = path.extname(normalized)
-      c.header('content-type', MIME[ext] ?? 'application/octet-stream')
-      c.header('cache-control', ext === '.html' ? 'no-cache' : 'public, max-age=3600')
-      if (ext === '.html') {
-        // 同源注入 token：网页不需要人肉粘贴密钥。这也是为什么默认只绑 127.0.0.1。
-        return c.body(injectToken(fs.readFileSync(normalized, 'utf8'), cfg.token))
-      }
-      return c.body(fs.readFileSync(normalized))
+    // 带扩展名说明是在要一个具体文件，没命中就是 404，不能吐 SPA 的 index.html
+    if (path.extname(pathname)) {
+      return c.text('not found', 404)
     }
 
+    const indexFile = path.join(cfg.webDist, 'index.html')
     if (fs.existsSync(indexFile)) {
       c.header('content-type', 'text/html; charset=utf-8')
       c.header('cache-control', 'no-cache')
+      // 同源注入 token：网页不需要人肉粘贴密钥。这也是为什么默认只绑 127.0.0.1。
       return c.body(injectToken(fs.readFileSync(indexFile, 'utf8'), cfg.token))
     }
 
@@ -463,6 +464,9 @@ export function createApp(repo: Repo, cfg: Config) {
     if (err instanceof NotFoundError) return c.json(problem(404, 'not_found', err.message), 404)
     if (err instanceof ConflictError) return c.json(problem(409, 'conflict', err.message), 409)
     if (err instanceof BadRequestError) return c.json(problem(400, 'bad_request', err.message), 400)
+    if (err instanceof DuplicateTermError) {
+      return c.json(problem(409, 'duplicate_term', `已存在同一术语: ${err.termId}`), 409)
+    }
     if (err instanceof SyntaxError) return c.json(problem(422, 'invalid_json', err.message), 422)
     console.error('[termloop] unhandled', err)
     return c.json(problem(500, 'internal_error', (err as Error).message), 500)
